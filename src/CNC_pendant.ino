@@ -100,6 +100,7 @@ const int PinAxis4 = 7;
 const int PinAxis5 = 8;
 const int PinAxis6 = 9;
 const int PinStop = A0;
+int btnState = HIGH;
 
 #if defined(__AVR_ATmega32U4__)     // Arduino Micro, Pro Micro or Leonardo
 const int PinTimes1 = A1;
@@ -143,7 +144,7 @@ int distanceMultiplier;
 int axis;
 uint32_t whenLastCommandSent = 0;
 
-const int axisPins[] = { PinX, PinY, PinZ, PinAxis4, PinAxis5, PinAxis6 };
+const int axisPins[] = { PinX, PinY, PinZ, PinAxis4 };
 const int feedAmountPins[] = { PinTimes1, PinTimes10, PinTimes100 };
 
 #if defined(__AVR_ATmega32U4__)     // Arduino Leonardo or Pro Micro
@@ -169,7 +170,6 @@ void setup()
   pinMode(PinTimes100, INPUT_PULLUP);
   pinMode(PinStop, INPUT_PULLUP);
   pinMode(PinLed, OUTPUT);
-
   output.begin(BaudRate);
 
   serialBufferSize = output.availableForWrite();
@@ -240,9 +240,32 @@ void loop()
       axis = localAxis;
       break;
     }
-    ++localAxis;    
+  else if (digitalRead(PinAxis5) == LOW)
+  {
+    {
+    delay(1000);
+    btnState = digitalRead(PinAxis5);
+    if(btnState == LOW)
+      {
+      output.write("G28\n");
+      #Serial.print("G28\n");
+      }
+    }
+  } 
+  else if (digitalRead(PinAxis6) == LOW)
+  {
+    {
+    delay(1000);
+    btnState = digitalRead(PinAxis6);
+    if(btnState == LOW)
+      {
+      output.write("G27\n");
+      #Serial.print("G27\n");
+      }
+    }
+  } 
+      ++localAxis;  
   }
-  
   // 5. If the serial output buffer is empty, send a G0 command for the accumulated encoder motion.
   if (output.availableForWrite() == serialBufferSize)
   {
@@ -260,6 +283,7 @@ void loop()
 #endif
         whenLastCommandSent = now;
         output.write(MoveCommands[axis]);
+        #Serial.print(MoveCommands[axis]);
         if (distance < 0)
         {
           output.write('-');
