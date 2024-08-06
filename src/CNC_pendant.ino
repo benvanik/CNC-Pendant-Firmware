@@ -248,7 +248,6 @@ void loop()
     if(btnState == LOW)
       {
       output.write("G28\n");
-      #Serial.print("G28\n");
       }
     }
   } 
@@ -260,7 +259,6 @@ void loop()
     if(btnState == LOW)
       {
       output.write("G27\n");
-      #Serial.print("G27\n");
       }
     }
   } 
