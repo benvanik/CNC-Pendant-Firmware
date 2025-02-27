@@ -2,8 +2,6 @@
 // D Crocker, started 2020-05-04
 
 /* This Arduino sketch can be run on either Arduino Nano or Arduino Pro Micro. 
- * It should alo work on an Arduino Uno (using the same wiring scheme as for the Nano) or Arduino Leonardo (using the same wiring scheme as for the Pro Micro).
- * The recommended board is the Arduino Pro Micro because the passthrough works without any modificatoins to the Arduino. 
 
 *** Pendant to Arduino Pro Micro connections ***
 
@@ -174,10 +172,8 @@ public:
 };
 
 #include "GCodeSerial.h"
-#include "PassThrough.h"
 
 RotaryEncoder encoder(PinA, PinB, PulsesPerClick);
-PassThrough passThrough;
 
 int serialBufferSize;
 int distanceMultiplier;
@@ -217,16 +213,7 @@ void setup()
 #if defined(__AVR_ATmega32U4__)     // Arduino Leonardo or Pro Micro
   TX_RX_LED_INIT;
 #endif
-}
 
-// Check for received data from PanelDue, store it in the pass through buffer, and send it if we have a complete command
-void checkPassThrough()
-{
-  unsigned int commandLength = passThrough.Check(UartSerial);
-  if (commandLength != 0 && UartSerial.availableForWrite() == serialBufferSize)
-  {
-    output.write(passThrough.GetCommand(), commandLength);
-  }
 }
 
 void loop()
@@ -239,11 +226,6 @@ void loop()
     {
       output.write("M112 ;" "\xF0" "\x0F" "\n");
       digitalWrite(PinLed, LOW);
-      uint16_t now = (uint16_t)millis();
-      while (digitalRead(PinStop) == HIGH && (uint16_t)millis() - now < 2000)
-      {
-        checkPassThrough();
-      }
       encoder.getChange();      // ignore any movement
     } while (digitalRead(PinStop) == HIGH);
 
@@ -329,8 +311,6 @@ void loop()
       }
     }
   }
-
-  checkPassThrough();
 }
 
 // End
