@@ -132,7 +132,47 @@ const char* const MoveCommands[] =
   "G91 G0 F6000 W"      // axis 6
 };
 
-#include "RotaryEncoder.h"
+// WARNING: prevents attachInterrupt from working.
+#define ENCODER_OPTIMIZE_INTERRUPTS
+#include <Encoder.h>
+
+class RotaryEncoder
+{
+  Encoder enc;
+
+  int ppc;
+
+  int lastV;
+
+public:
+  RotaryEncoder(int p0, int p1, int pulsesPerClick) :
+    enc(p0, p1), ppc(pulsesPerClick), lastV(0) {}
+
+  int getChange() {
+    noInterrupts();
+
+    int v = enc.read();
+    int delta = v/ppc-lastV;
+
+    if(v >= 100*ppc)
+    {
+      v-=100*ppc;
+      enc.write(v);
+    }
+    if(v <= -100*ppc)
+    {
+      v+=100*ppc;
+      enc.write(v);
+    }
+
+      lastV = v/ppc;
+    interrupts();
+
+
+    return delta;
+  }
+};
+
 #include "GCodeSerial.h"
 #include "PassThrough.h"
 
@@ -191,11 +231,6 @@ void checkPassThrough()
 
 void loop()
 {
-  // 0. Poll the encoder. Ideally we would do this in the tick ISR, but after all these years the Arduino core STILL doesn't let us hook it.
-  // We could possibly use interrupts instead, but if the encoder suffers from contact bounce then that isn't a good idea.
-  // In practice this loop executes fast enough that polling it here works well enough
-  encoder.poll();
-
   // 1. Check for emergency stop
   if (digitalRead(PinStop) == HIGH)
   {
@@ -281,7 +316,7 @@ void loop()
 #endif
         whenLastCommandSent = now;
         output.write(MoveCommands[axis]);
-        #Serial.print(MoveCommands[axis]);
+        Serial.print(MoveCommands[axis]);
         if (distance < 0)
         {
           output.write('-');
