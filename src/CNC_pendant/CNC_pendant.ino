@@ -1,6 +1,8 @@
 // CNC pendant interface to Duet
 // D Crocker, started 2020-05-04
 
+// #define DEBUG
+
 /* This Arduino sketch can be run on either Arduino Nano or Arduino Pro Micro. 
 
 *** Pendant to Arduino Pro Micro connections ***
@@ -193,6 +195,13 @@ GCodeSerial output(UartSerial);
 
 void setup()
 {
+#if defined(DEBUG)
+  Serial.begin(9600);
+  while (!Serial) {}
+  delay(1000);
+  Serial.println("setup()");
+#endif  // DEBUG
+
   pinMode(PinA, INPUT_PULLUP);
   pinMode(PinB, INPUT_PULLUP);
   pinMode(PinX, INPUT_PULLUP);
@@ -214,6 +223,9 @@ void setup()
   TX_RX_LED_INIT;
 #endif
 
+#if defined(DEBUG)
+  Serial.println("~setup()");
+#endif  // DEBUG
 }
 
 void loop()
@@ -298,7 +310,9 @@ void loop()
 #endif
         whenLastCommandSent = now;
         output.write(MoveCommands[axis]);
+#if defined(DEBUG)
         Serial.print(MoveCommands[axis]);
+#endif  // DEBUG
         if (distance < 0)
         {
           output.write('-');
