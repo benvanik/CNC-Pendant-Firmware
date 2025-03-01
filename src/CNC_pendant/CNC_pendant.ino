@@ -1,7 +1,7 @@
 // CNC pendant interface to Duet
 // D Crocker, started 2020-05-04
 
-// #define DEBUG
+//#define DEBUG
 
 /* This Arduino sketch can be run on either Arduino Nano or Arduino Pro Micro. 
 
@@ -234,6 +234,9 @@ void loop()
   if (digitalRead(PinStop) == HIGH)
   {
     // Send emergency stop command every 2 seconds
+#if defined(DEBUG)
+    Serial.println("e-stop begin");
+#endif  // DEBUG
     do
     {
       output.write("M112 ;" "\xF0" "\x0F" "\n");
@@ -242,6 +245,9 @@ void loop()
     } while (digitalRead(PinStop) == HIGH);
 
     output.write("M999\n");
+#if defined(DEBUG)
+    Serial.println("e-stop end");
+#endif  // DEBUG
   }
 
   digitalWrite(PinLed, HIGH);
@@ -276,6 +282,9 @@ void loop()
     btnState = digitalRead(PinAxis5);
     if(btnState == LOW)
       {
+#if defined(DEBUG)
+      Serial.println("G28");
+#endif  // DEBUG
       output.write("G28\n");
       }
     }
@@ -287,6 +296,9 @@ void loop()
     btnState = digitalRead(PinAxis6);
     if(btnState == LOW)
       {
+#if defined(DEBUG)
+      Serial.println("G27");
+#endif  // DEBUG
       output.write("G27\n");
       }
     }
@@ -296,8 +308,9 @@ void loop()
   // 5. If the serial output buffer is empty, send a G0 command for the accumulated encoder motion.
   if (output.availableForWrite() == serialBufferSize)
   {
-#if defined(__AVR_ATmega32U4__)     // Arduino Micro, Pro Micro or Leonardo
-    TXLED1;                         // turn off transmit LED
+#if defined(__AVR_ATmega32U4__)       // Arduino Micro, Pro Micro or Leonardo
+    // turn off transmit LED
+    pinMode(LED_BUILTIN_TX, INPUT);
 #endif
     const uint32_t now = millis();
     if (now - whenLastCommandSent >= MinCommandInterval)
@@ -306,12 +319,15 @@ void loop()
       if (axis >= 0 && distance != 0)
       {
 #if defined(__AVR_ATmega32U4__)     // Arduino Micro, Pro Micro or Leonardo
-        TXLED0;                     // turn on transmit LED
+        // turn on transmit LED
+        pinMode(LED_BUILTIN_TX, OUTPUT);
+        digitalWrite( LED_BUILTIN_TX, LOW);
 #endif
         whenLastCommandSent = now;
         output.write(MoveCommands[axis]);
 #if defined(DEBUG)
         Serial.print(MoveCommands[axis]);
+        Serial.println(distance);
 #endif  // DEBUG
         if (distance < 0)
         {
