@@ -1,7 +1,7 @@
 // CNC pendant interface to Duet
 // D Crocker, started 2020-05-04
 
-//#define DEBUG
+#define DEBUG
 
 /* This Arduino sketch can be run on either Arduino Nano or Arduino Pro Micro. 
 
@@ -24,8 +24,8 @@ D8        5         powder (if present)
 D9        6         powder/black (if present)
 D10       LED+      green/black
 A0        STOP      blue
-A1        X1        grey
-A2        X10       grey/black
+A2        X1        grey             *** SWAPPED
+A1        X10       grey/black       *** SWAPPED
 A3        X100      orange
 
 NC        /A,       violet
@@ -103,8 +103,8 @@ const int PinStop = A0;
 int btnState = HIGH;
 
 #if defined(__AVR_ATmega32U4__)     // Arduino Micro, Pro Micro or Leonardo
-const int PinTimes1 = A1;
-const int PinTimes10 = A2;
+const int PinTimes1 = A2;
+const int PinTimes10 = A1;
 const int PinTimes100 = A3;
 const int PinLed = 10;
 #endif
