@@ -1,7 +1,7 @@
 // CNC pendant interface to Duet
 // D Crocker, started 2020-05-04
 
-#define DEBUG
+//#define DEBUG
 
 /* This Arduino sketch can be run on either Arduino Nano or Arduino Pro Micro. 
 
@@ -24,8 +24,8 @@ D8        5         powder (if present)
 D9        6         powder/black (if present)
 D10       LED+      green/black
 A0        STOP      blue
-A2        X1        grey             *** SWAPPED
-A1        X10       grey/black       *** SWAPPED
+A1        X1        grey
+A2        X10       grey/black
 A3        X100      orange
 
 NC        /A,       violet
@@ -103,8 +103,8 @@ const int PinStop = A0;
 int btnState = HIGH;
 
 #if defined(__AVR_ATmega32U4__)     // Arduino Micro, Pro Micro or Leonardo
-const int PinTimes1 = A2;
-const int PinTimes10 = A1;
+const int PinTimes1 = A1;
+const int PinTimes10 = A2;
 const int PinTimes100 = A3;
 const int PinLed = 10;
 #endif
@@ -115,7 +115,6 @@ const int PinTimes10 = 11;
 const int PinTimes100 = 12;
 const int PinLed = 13;
 #endif
-
 
 const unsigned long BaudRate = 57600;
 const int PulsesPerClick = 4;
@@ -136,15 +135,11 @@ const char* const MoveCommands[] =
 #define ENCODER_OPTIMIZE_INTERRUPTS
 #include <Encoder.h>
 
-class RotaryEncoder
-{
+struct RotaryEncoder {
   Encoder enc;
-
   int ppc;
-
   int lastV;
 
-public:
   RotaryEncoder(int p0, int p1, int pulsesPerClick) :
     enc(p0, p1), ppc(pulsesPerClick), lastV(0) {}
 
@@ -152,22 +147,19 @@ public:
     noInterrupts();
 
     int v = enc.read();
-    int delta = v/ppc-lastV;
+    int delta = v / ppc - lastV;
 
-    if(v >= 100*ppc)
-    {
-      v-=100*ppc;
+    if (v >= 100*ppc) {
+      v -= 100 * ppc;
       enc.write(v);
     }
-    if(v <= -100*ppc)
-    {
-      v+=100*ppc;
+    if (v <= -100*ppc) {
+      v += 100 * ppc;
       enc.write(v);
     }
 
-      lastV = v/ppc;
+    lastV = v / ppc;
     interrupts();
-
 
     return delta;
   }
@@ -231,14 +223,12 @@ void setup()
 void loop()
 {
   // 1. Check for emergency stop
-  if (digitalRead(PinStop) == HIGH)
-  {
+  if (digitalRead(PinStop) == HIGH) {
     // Send emergency stop command every 2 seconds
 #if defined(DEBUG)
     Serial.println("e-stop begin");
 #endif  // DEBUG
-    do
-    {
+    do {
       output.write("M112 ;" "\xF0" "\x0F" "\n");
       digitalWrite(PinLed, LOW);
       encoder.getChange();      // ignore any movement
@@ -268,43 +258,32 @@ void loop()
   // 3. Poll the axis selector switch
   axis = -1;
   int localAxis = 0;
-  for (int pin : axisPins)
-  {
-    if (digitalRead(pin) == LOW)
-    {
+  for (int pin : axisPins) {
+    if (digitalRead(pin) == LOW) {
       axis = localAxis;
       break;
-    }
-  else if (digitalRead(PinAxis5) == LOW)
-  {
-    {
-    delay(1000);
-    btnState = digitalRead(PinAxis5);
-    if(btnState == LOW)
-      {
+    } else if (digitalRead(PinAxis5) == LOW) {
+      delay(1000);
+      btnState = digitalRead(PinAxis5);
+      if (btnState == LOW) {
 #if defined(DEBUG)
-      Serial.println("G28");
+        Serial.println("G28");
 #endif  // DEBUG
-      output.write("G28\n");
+        output.write("G28\n");
+      }
+    } else if (digitalRead(PinAxis6) == LOW) {
+      delay(1000);
+      btnState = digitalRead(PinAxis6);
+      if (btnState == LOW) {
+#if defined(DEBUG)
+        Serial.println("G27");
+#endif  // DEBUG
+        output.write("G27\n");
       }
     }
-  } 
-  else if (digitalRead(PinAxis6) == LOW)
-  {
-    {
-    delay(1000);
-    btnState = digitalRead(PinAxis6);
-    if(btnState == LOW)
-      {
-#if defined(DEBUG)
-      Serial.println("G27");
-#endif  // DEBUG
-      output.write("G27\n");
-      }
-    }
-  } 
-      ++localAxis;  
+    ++localAxis;
   }
+
   // 5. If the serial output buffer is empty, send a G0 command for the accumulated encoder motion.
   if (output.availableForWrite() == serialBufferSize)
   {
@@ -313,11 +292,9 @@ void loop()
     pinMode(LED_BUILTIN_TX, INPUT);
 #endif
     const uint32_t now = millis();
-    if (now - whenLastCommandSent >= MinCommandInterval)
-    {
+    if (now - whenLastCommandSent >= MinCommandInterval) {
       int distance = encoder.getChange() * distanceMultiplier;
-      if (axis >= 0 && distance != 0)
-      {
+      if (axis >= 0 && distance != 0) {
 #if defined(__AVR_ATmega32U4__)     // Arduino Micro, Pro Micro or Leonardo
         // turn on transmit LED
         pinMode(LED_BUILTIN_TX, OUTPUT);
@@ -329,8 +306,7 @@ void loop()
         Serial.print(MoveCommands[axis]);
         Serial.println(distance);
 #endif  // DEBUG
-        if (distance < 0)
-        {
+        if (distance < 0) {
           output.write('-');
           distance = -distance;
         }
